@@ -16,7 +16,7 @@ from tensorflow.keras import models
 import tensorflow as tf
 from model import ProposedModel, getAssembledModel
 
-numDatasets = 5
+numDatasets = 4
 
 tr_folder = "datasets/sixray/normal/" # path to training dataset
 
