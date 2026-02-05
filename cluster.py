@@ -8,50 +8,6 @@ from scipy import ndimage
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
-def create_pascal_voc_xml(filename, orig_width, orig_height, boxes, dataset_name, proc_width, proc_height):
-    """
-    Creates a Pascal VOC XML string for the given image and bounding boxes.
-    Adjusts bounding box coordinates to match the original image dimensions.
-    """
-    annotation = ET.Element('annotation')
-    
-    ET.SubElement(annotation, 'folder').text = dataset_name
-    ET.SubElement(annotation, 'filename').text = filename
-    
-    source = ET.SubElement(annotation, 'source')
-    ET.SubElement(source, 'database').text = dataset_name
-    
-    size = ET.SubElement(annotation, 'size')
-    ET.SubElement(size, 'width').text = str(orig_width)
-    ET.SubElement(size, 'height').text = str(orig_height)
-    ET.SubElement(size, 'depth').text = '3'
-    
-    ET.SubElement(annotation, 'segmented').text = '0'
-    
-    for box in boxes:
-        # box format: [x, y, w, h]
-        x, y, w, h = box
-        
-        # Scale bounding box coordinates to original dimensions
-        x_min = int(x * (orig_width / proc_width))
-        y_min = int(y * (orig_height / proc_height))
-        x_max = int((x + w) * (orig_width / proc_width))
-        y_max = int((y + h) * (orig_height / proc_height))
-        
-        obj = ET.SubElement(annotation, 'object')
-        ET.SubElement(obj, 'name').text = 'Anomaly'
-        ET.SubElement(obj, 'pose').text = 'Unspecified'
-        ET.SubElement(obj, 'truncated').text = '0'
-        ET.SubElement(obj, 'difficult').text = '0'
-        
-        bndbox = ET.SubElement(obj, 'bndbox')
-        ET.SubElement(bndbox, 'xmin').text = str(x_min)
-        ET.SubElement(bndbox, 'ymin').text = str(y_min)
-        ET.SubElement(bndbox, 'xmax').text = str(x_max)
-        ET.SubElement(bndbox, 'ymax').text = str(y_max)
-        
-    xml_str = minidom.parseString(ET.tostring(annotation)).toprettyxml(indent="   ")
-    return xml_str
 
 def run_cluster():
     datasets = ["sixray"]
@@ -218,7 +174,7 @@ def run_cluster():
 
             for cnt in contours:
                 x, y, w_box, h_box = cv2.boundingRect(cnt)
-                detected_boxes.append([x, y, w_box, h_box])
+                detected_boxes.append((x, y, x + w_box, y + h_box))
                 
                 # Draw on image
                 cv2.rectangle(output_img, (x, y), (x+w_box, y+h_box), (0, 255, 255), 10)
@@ -234,16 +190,88 @@ def run_cluster():
             save_img_path = os.path.join(pn_results, fn)
             cv2.imwrite(save_img_path, montage)
 
-            # 2. Save Annotation (XML)
-            if detected_boxes:
-                # Construct XML filename (replace extension with .xml)
-                xml_fn = os.path.splitext(fn)[0] + '.xml'
-                save_xml_path = os.path.join(pn_annotations, xml_fn)
-                
-                xml_content = create_pascal_voc_xml(fn, w, h, detected_boxes, d_name)
-                
-                with open(save_xml_path, "w") as f:
-                    f.write(xml_content)
+            # Save predicted bounding boxes in XML format
+            annotation = ET.Element("annotation")
+
+            folder = ET.SubElement(annotation, "folder")
+            folder.text = "X_ray"
+
+            filename = ET.SubElement(annotation, "filename")
+            filename.text = fn
+
+            source = ET.SubElement(annotation, "source")
+            database = ET.SubElement(source, "database")
+            database.text = "The X_ray Database"
+            annotation_source = ET.SubElement(source, "annotation")
+            annotation_source.text = "The X_ray Database"
+            image = ET.SubElement(source, "image")
+            image.text = "X_ray"
+            flickrid = ET.SubElement(source, "flickrid")
+            flickrid.text = "0"
+
+            owner = ET.SubElement(annotation, "owner")
+            flickrid_owner = ET.SubElement(owner, "flickrid")
+            flickrid_owner.text = "miaocaijing16@mails.ucas.ac.ac"
+            name = ET.SubElement(owner, "name")
+            name.text = "MeioJane"
+
+            size = ET.SubElement(annotation, "size")
+            width = ET.SubElement(size, "width")
+            width.text = str(real_img.shape[1])
+            height = ET.SubElement(size, "height")
+            height.text = str(real_img.shape[0])
+            depth = ET.SubElement(size, "depth")
+            depth.text = str(real_img.shape[2])
+
+            segmented = ET.SubElement(annotation, "segmented")
+            segmented.text = "0"
+
+            # Ensure bounding boxes are scaled to original image dimensions
+            original_height, original_width = real_img.shape[:2]
+            processed_height, processed_width = dis_proc.shape[:2]
+
+            scale_x = original_width / processed_width
+            scale_y = original_height / processed_height
+
+            scaled_boxes = []
+            for box in detected_boxes:
+                x_min, y_min, x_max, y_max = box
+                scaled_boxes.append((
+                    int(x_min * scale_x),
+                    int(y_min * scale_y),
+                    int(x_max * scale_x),
+                    int(y_max * scale_y)
+                ))
+
+            # Replace detected_boxes with scaled_boxes for saving in XML
+            detected_boxes = scaled_boxes
+
+            for box in detected_boxes:
+                obj = ET.SubElement(annotation, "object")
+                name = ET.SubElement(obj, "name")
+                name.text = "Knife"
+                pose = ET.SubElement(obj, "pose")
+                pose.text = "Unspecified"
+                truncated = ET.SubElement(obj, "truncated")
+                truncated.text = "0"
+                difficult = ET.SubElement(obj, "difficult")
+                difficult.text = "0"
+
+                bndbox = ET.SubElement(obj, "bndbox")
+                xmin = ET.SubElement(bndbox, "xmin")
+                xmin.text = str(box[0])
+                ymin = ET.SubElement(bndbox, "ymin")
+                ymin.text = str(box[1])
+                xmax = ET.SubElement(bndbox, "xmax")
+                xmax.text = str(box[2])
+                ymax = ET.SubElement(bndbox, "ymax")
+                ymax.text = str(box[3])
+
+            tree = ET.ElementTree(annotation)
+            xml_save_path = os.path.join(pn_annotations, fn.replace('.png', '.xml'))
+            tree.write(xml_save_path)
+            
+
 
 if __name__ == "__main__":
     run_cluster()
