@@ -99,6 +99,7 @@ dependencies:
   - rsa=4.6=py_0
   - scikit-image=0.17.2=py37h414f9d2_2
   - scipy=1.5.2=py37h9439919_0
+  - scikit-learn
   - setuptools=49.6.0=py37hc8dfbb8_1
   - shapely=1.7.1=py37h82f916b_0
   - six=1.15.0=pyh9f0ad1d_0
@@ -129,6 +130,7 @@ dependencies:
   - zlib=1.2.11=h62dcd97_1009
   - zstd=1.4.5=h1f3a1b7_2
   - pip:
+    - imgaug
     - astunparse==1.6.3
     - gast==0.3.3
     - h5py==2.10.0
