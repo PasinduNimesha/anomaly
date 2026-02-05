@@ -61,6 +61,7 @@ def getPatches(folder, isTraining, p):
     patches = []
     i_i = []
     i_j = []
+    filenames = []
 
     mean = 0
     var = 10
@@ -81,6 +82,7 @@ def getPatches(folder, isTraining, p):
         i2 = i2 + 1
         image = Image.open(folder + filename)
         data = np.array(image)
+        filenames.append(filename)
         
         if isTraining == True:
             # adding Gaussian noise            
@@ -110,7 +112,7 @@ def getPatches(folder, isTraining, p):
      
     patches = np.array(patches)
     
-    return i_i, i_j, patches
+    return i_i, i_j, patches, filenames
     
 
 def transferWeights(model1, model2):    
@@ -141,7 +143,7 @@ else:
     
 # TESTING
 for d in range(numDatasets):
-    i_i, i_j, x_test = getPatches(te_folders[d], False, p)
+    i_i, i_j, x_test, filenames = getPatches(te_folders[d], False, p)
 
     print(x_test.shape)
     
@@ -210,10 +212,7 @@ for d in range(numDatasets):
         A = (255 * d_imgs[i].reshape(act_size, act_size, 3)).astype(np.uint8)
         im = Image.fromarray(A)
         newsize = (224, 224) 
-        #im = im.resize(newsize)
-        #print(im.size)
-    #    im.show()
-        im.save(folder + "Image" + str(i) + ".jpg")
+        im.save(folder + filenames[i])
 
     t, r, c, ch = d_test.shape 
 
@@ -223,8 +222,7 @@ for d in range(numDatasets):
         A = (255 * d_test[i].reshape(act_size, act_size, 3)).astype(np.uint8)
         im = Image.fromarray(A)
         newsize = (224, 224) 
-    #    im = im.resize(newsize) 
-        im.save(folder + "Image" + str(i) + ".jpg")
+        im.save(folder + filenames[i])
 
 
     folder = res_disp[m]
@@ -234,8 +232,7 @@ for d in range(numDatasets):
         print("MSE: " + str(255*np.mean(heatmaps[i] * heatmaps[i])))
         im = Image.fromarray(A)
         newsize = (224, 224) 
-    #    im = im.resize(newsize) 
-        im.save(folder + "Image" + str(i) + ".jpg")
+        im.save(folder + filenames[i])
 
 # [Optional] Uncomment these line to plot results
 #    n = 9
